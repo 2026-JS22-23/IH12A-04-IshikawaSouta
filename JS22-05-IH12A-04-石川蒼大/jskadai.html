@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>三重の観光まとめ</title>
+
+    <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCAKLjisxFelKwIl1_G6MiEO9-ya7Twr5s&callback=initMap"></script>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+
+    <style>
+      body {
+        margin: 0;
+        background: #eef4ff;
+        font-family: "Yu Gothic", sans-serif;
+      }
+
+      header {
+        background: #2b7cff;
+        padding: 25px 0;
+        color: #fff;
+        text-align: center;
+      }
+
+      header h1 {
+        margin: 0;
+        font-size: 28px;
+      }
+
+      header p {
+        margin: 8px 0 0;
+        opacity: 0.9;
+      }
+
+      #main {
+        display: flex;
+        height: 480px;
+      }
+
+      #map {
+        flex: 2;
+        border-right: 2px solid #d0d8e8;
+      }
+
+      #sidebar {
+        flex: 1;
+        background: #f7faff;
+        padding: 10px;
+        overflow-y: scroll;
+      }
+
+      #sidebar h2 {
+        margin: 0 0 10px;
+        font-size: 18px;
+        color: #2b7cff;
+      }
+
+      #filterBox {
+        margin-bottom: 15px;
+        background: #fff;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+      }
+
+      #filterBox input,
+      #filterBox select {
+        width: 100%;
+        padding: 8px;
+        margin-top: 8px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+      }
+
+      .spot {
+        display: flex;
+        gap: 10px;
+        background: #fff;
+        border: 1px solid #ddd;
+        padding: 10px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+
+      .spot:hover {
+        transform: translateY(-3px);
+      }
+
+      .spot img {
+        width: 80px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 6px;
+      }
+
+      .spot h3 {
+        margin: 0;
+        font-size: 15px;
+        color: #2b7cff;
+      }
+
+      #tabs {
+        padding: 20px;
+      }
+
+      .ui-tabs-nav li a {
+        background: #e8f1ff !important;
+        color: #2b7cff !important;
+      }
+
+      .ui-tabs-active a {
+        background: #2b7cff !important;
+        color: #fff !important;
+      }
+    </style>
+  </head>
+
+  <body>
+
+    <header>
+      <h1>三重の観光まとめ</h1>
+      <p>四日市とか伊勢とかそのへんの有名どころまとめたやつ。</p>
+    </header>
+
+    <div id="main">
+      <div id="map"></div>
+
+      <div id="sidebar">
+        <h2>スポット一覧</h2>
+
+        <div id="filterBox">
+          <label>カテゴリ絞り込み</label>
+          <select id="filterCat">
+            <option value="">全部</option>
+            <option value="四日市">四日市</option>
+            <option value="津・松阪">津・松阪</option>
+            <option value="伊勢・志摩">伊勢・志摩</option>
+          </select>
+
+          <label style="margin-top:10px;">名前検索</label>
+          <input type="text" id="searchBox" placeholder="名前で検索">
+        </div>
+
+        <div id="sideList"></div>
+      </div>
+    </div>
+
+    <div id="tabs">
+      <ul>
+        <li><a href="#yokkaichi">四日市</a></li>
+        <li><a href="#tsu">津・松阪</a></li>
+        <li><a href="#ise">伊勢・志摩</a></li>
+      </ul>
+
+      <div id="yokkaichi"></div>
+      <div id="tsu"></div>
+      <div id="ise"></div>
+    </div>
+
+    <script>
+      function initMap() {
+
+        // 画像は全部ローカルの img/◯◯.jpg にした
+        const list = [
+          { cat:"四日市", name:"喰い処・呑み処 紡（つむぎ）",
+            pos:{lat:34.9702634, lng:136.6186097},
+            img:"img/tsumugi.jpg",
+            desc:"ずっと世話になってる居酒屋。オーナーさんがいい人すぎてBIG LOVE___"
+          },
+
+          { cat:"四日市", name:"諏訪神社",
+            pos:{lat:34.9650, lng:136.6240},
+            img:"img/suwa.jpg",
+            desc:"四日市のど真ん中にある神社。地元民はとりあえずここで初詣するやつ。"
+          },
+
+          { cat:"四日市", name:"四日市港ポートビル",
+            pos:{lat:34.9655, lng:136.6179},
+            img:"img/portbiru.jpg",
+            desc:"展望台から港が全部見える。夜景が普通に強い。デートでも使える。"
+          },
+
+          { cat:"津・松阪", name:"津観音",
+            pos:{lat:34.7350, lng:136.5083},
+            img:"img/tsukannon.jpg",
+            desc:"津の街中にある観音さん。歴史に詳しい人もあまり好きでなくてもどっちもいける。"
+          },
+
+          { cat:"津・松阪", name:"安濃ダム公園",
+            pos:{lat:34.8050, lng:136.4480},
+            img:"img/anno.jpg",
+            desc:"自然デカめ。散歩とか写真撮るのにちょうどいい。夜がとても雰囲気が良い。"
+          },
+
+          { cat:"津・松阪", name:"松阪城跡",
+            pos:{lat:34.5780, lng:136.5270},
+            img:"img/matsusaka.jpg",
+            desc:"城跡。桜の時期はマジで綺麗。松阪牛だけじゃないぞって感じ。"
+          },
+
+          { cat:"伊勢・志摩", name:"伊勢神宮（内宮）",
+            pos:{lat:34.4553, lng:136.7253},
+            img:"img/ise.jpg",
+            desc:"観光客が集う日本トップ神社。空気が違う。"
+          },
+
+          { cat:"伊勢・志摩", name:"おかげ横丁",
+            pos:{lat:34.4560, lng:136.7258},
+            img:"img/okage.jpg",
+            desc:"食べ歩き天国。伊勢来たら絶対行くべき！雰囲気も強い。"
+          },
+
+          { cat:"伊勢・志摩", name:"鳥羽水族館",
+            pos:{lat:34.4860, lng:136.8430},
+            img:"img/toba.jpg",
+            desc:"ジュゴンがいる水族館。展示の量がほかにないくらい多い。普通に楽しい。"
+          },
+
+          { cat:"伊勢・志摩", name:"志摩スペイン村",
+            pos:{lat:34.3470, lng:136.8140},
+            img:"img/spain.jpg",
+            desc:"スペイン感強めのテーマパーク。人少なくて快適なのが逆に良い。"
+          }
+        ];
+
+        const map = new google.maps.Map(document.getElementById("map"), {
+          center: { lat:34.9702634, lng:136.6186097 },
+          zoom: 10
+        });
+
+        list.forEach(s => {
+          const m = new google.maps.Marker({
+            position: s.pos,
+            map: map,
+            title: s.name
+          });
+
+          const info = new google.maps.InfoWindow({
+            content: `
+              <div style="width:180px;">
+                <img src="${s.img}" style="width:100%; border-radius:6px;">
+                <h3>${s.name}</h3>
+                <p>${s.desc}</p>
+              </div>
+            `
+          });
+
+          m.addListener("click", () => info.open(map, m));
+        });
+
+        function renderList() {
+          const cat = $("#filterCat").val();
+          const word = $("#searchBox").val().toLowerCase();
+
+          $("#sideList").empty();
+
+          list.forEach(s => {
+            if (cat && s.cat !== cat) return;
+            if (word && !s.name.toLowerCase().includes(word)) return;
+
+            $("#sideList").append(`
+              <div class="spot" onclick="go(${s.pos.lat}, ${s.pos.lng})">
+                <img src="${s.img}">
+                <div>
+                  <h3>${s.name}</h3>
+                  <p>${s.desc}</p>
+                </div>
+              </div>
+            `);
+          });
+        }
+
+        renderList();
+
+        $("#filterCat").on("change", renderList);
+        $("#searchBox").on("input", renderList);
+
+        window.go = function(lat, lng) {
+          map.setCenter({lat, lng});
+          map.setZoom(14);
+        };
+
+        const catDom = {
+          "四日市": "#yokkaichi",
+          "津・松阪": "#tsu",
+          "伊勢・志摩": "#ise"
+        };
+
+        list.forEach(s => {
+          $(catDom[s.cat]).append(`
+            <div class="spot">
+              <img src="${s.img}">
+              <div>
+                <h3>${s.name}</h3>
+                <p>${s.desc}</p>
+              </div>
+            </div>
+          `);
+        });
+
+        $("#tabs").tabs();
+      }
+    </script>
+  </body>
+</html>
